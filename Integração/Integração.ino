@@ -2,6 +2,7 @@
 #include <SdFat.h>
 #include <TinyGPS++.h>
 #include <SoftwareSerial.h>
+#include <millisDelay.h>
 
 // Pino A4 -> SDA do MPU
 // Pino A5 -> SCL do MPU
@@ -29,10 +30,11 @@ SdFile dadosAcc;
 SdFile dadosGPS;
 const uint8_t chipSelect = 8;
 
-int start_millis;
+unsigned long period = 60000; // 60000 -> 1 minute
+unsigned long time_now = 0;
 
 void lerGPS() {
-  
+
     if (ss.available() > 0) {
       gps.encode(ss.read());
       if (gps.location.isUpdated()) {
@@ -44,7 +46,7 @@ void lerGPS() {
         Serial.print("Time = "); Serial.print(gps.time.value()); // Raw time in HHMMSSCC format (u32)
         dadosGPS.print(gps.time.value());
 
-        Serial.print("Milis = "); Serial.print(millis()); 
+        Serial.print(" | Milis = "); Serial.print(millis()); 
         dadosGPS.print(";"); dadosGPS.print(millis());
         
         Serial.print(" | Lat = "); Serial.print(gps.location.lat(), 6);
@@ -54,6 +56,7 @@ void lerGPS() {
         dadosGPS.print(";"); dadosGPS.println(gps.location.lng(), 6);
 
         dadosGPS.close();
+        
       }
     }
   }
@@ -121,18 +124,16 @@ void setup()
   Wire.write(0);
   Wire.endTransmission(true);
 
-  int start_millis = millis();
-
 }
 
 void loop() {
 
-  if (start_millis - millis() > 60000){
-    start_millis = millis();
+  if (millis() > time_now + period) {
+    time_now = millis();
     lerGPS();
+  } else {  
+    lerMPU();
   }
-  
-  lerMPU();
   
   /*Serial.println(gps.time.value()); // Raw time in HHMMSSCC format (u32)
   lerGPS();
